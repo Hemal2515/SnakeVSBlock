@@ -1,105 +1,124 @@
-using System.Collections;
+
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using TMPro;
 
 public class SnakeMovement : MonoBehaviour
-{
-    public TextMeshPro textMeshPro;
+{ 
+    public TextMeshPro snakeSizeText;
 
-    private float snakeSpeed = 15f;
-    float h, v;
-    public List<GameObject> snakeCircleList = new List<GameObject>();
-    public int SnakeCircleCount => snakeCircleList.Count;
-    public GameObject snakePrefab;
+    public NotifiertSO notifiertSO;
+    // Settings
+    public float MoveSpeed = 5;
+    public float SteerSpeed = 180;
+    public float BodySpeed = 5;
+    public int Gap = 5;
+    
+    private List<Vector3> PositionsHistory = new List<Vector3>();
+    public List<GameObject> snakeBody = new List<GameObject>();
+    public int SnakeBodyCount => snakeBody.Count;
+    public Transform snakeParent;
+    private GameObject getSnakeHead;
 
-    private int startSnakeCircle = 4;
+    private int startSnakeBody = 4;
 
-    public GameObject gamePlayCanvas;
-    public GameObject gameOverCanvas;
-    public Block block;
-
-    public SnakeBody snakeBody;
+    public GameObject BodyPrefab;
 
 
     public void Start()
     {
-        //Spawn Starting Snake
-        snakeCircleList.Add(gameObject);
-        for (int i = 1; i < startSnakeCircle; i++)
+        snakeBody.Add(getSnakeHead);
+        for (int i = 0; i < startSnakeBody; i++)
         {
-            snakeCircleList.Add(Instantiate(snakePrefab));
+            SpawnSnakeBody();
         }
-        
 
     }
     public void Update()
     {
-        // Given Input according to Android
+        transform.position += transform.up * MoveSpeed * Time.deltaTime;
+
+        // Given Input according to Android       
         if (Input.GetMouseButton(0))
         {
             transform.position = new Vector3(Camera.main.ScreenToWorldPoint(Input.mousePosition).x, transform.position.y, 0);
         }
-        transform.position += new Vector3(0, 0.03f, 0);
 
 
-        //Show number on Snake
-        textMeshPro.text = snakeCircleList.Count.ToString();
-        SnakeMove();
-    }
+        Vector2 steerDirection = Input.mousePosition;
+        transform.Rotate(Vector3.forward * steerDirection * SteerSpeed * Time.deltaTime);
 
-    public void FixedUpdate()
-    {
-        //Given position of snake circle
-        for (int i = snakeCircleList.Count - 1; i > 0; i--)
+        PositionsHistory.Insert(0, transform.position);
+
+        // Move body parts
+        int index = 0;
+        foreach (var body in snakeBody)
         {
-            snakeCircleList[i].transform. position = snakeCircleList[i - 1].transform.position + new Vector3(0, -0.4f, 0);
+            Vector3 point = PositionsHistory[Mathf.Clamp(index * Gap, 0, PositionsHistory.Count - 1)];
+            Vector3 moveDirection = point - body.transform.position;
+            body.transform.position += moveDirection * BodySpeed * Time.deltaTime;
+
+            index++;
         }
+        
+        SnakeMove();
+
+        //Update Snake Length
+        snakeSizeText.text = snakeBody.Count.ToString();
+        
     }
 
      public void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.tag == "SnakeBody")
+        if (collision.tag == "SnakeFood")
         {
             AudioManager.instances.ColorBallTouch();
-            SnakeBody snakeBody = collision.GetComponent<SnakeBody>();
-            for(int i=0; i<snakeBody.currentNum; i++)
+            SnakeFood snakeFood = collision.GetComponent<SnakeFood>();
+            for(int i=0; i<snakeFood.onFoodNum; i++)
             {
-               SpawnSnakeCircle();
+              SpawnSnakeBody();
             }
         }
     }
 
-    void SpawnSnakeCircle()
+    //Spawn SnakeBody
+    public void SpawnSnakeBody()
     {
-        GameObject snakeCircle = Instantiate(snakePrefab);
-        snakeCircle.transform. position = snakeCircleList[snakeCircleList.Count - 1].transform.position;
-        snakeCircleList.Add(snakeCircle);
+        GameObject body = Instantiate(BodyPrefab, snakeParent);
+
+        snakeBody.Add(body);
     }
 
+    
+    void SnakeMove()
+    {
+        float maxX = (Camera.main.orthographicSize * Screen.width / Screen.height)-0.2f;
+
+        if (snakeBody.Count > 0)
+        {
+            if (snakeBody[0].transform.position.x > maxX) //Right pos
+            {
+                snakeBody[0].transform.position = new Vector3(maxX - 0.05f, snakeBody[0].transform.position.y, snakeBody[0].transform.position.z);
+            }
+            else if (snakeBody[0].transform.position.x < -maxX) //Left pos
+            {
+                snakeBody[0].transform.position = new Vector3(-maxX + 0.05f, snakeBody[0].transform.position.y, snakeBody[0].transform.position.z);
+            }
+        }
+    }
+
+    //GameOver
     public void ChangeToGameOver()
     {
-        if (snakeCircleList.Count <= 0)
+        if (snakeBody.Count <= 0)
         {
-            SceneManager.LoadScene("GameOver");
+            notifiertSO.CurrentGameState = GameState.GameOver;
         }
     }
 
-    public void SnakeMove()
+    //Add Snake Head
+    public void AddSnakeHead(SnakeMovement snakeMovement)
     {
-        float maxX = Camera.main.orthographicSize * Screen.width / Screen.height;
-
-        if (snakeCircleList.Count > 0)
-        {
-            if (snakeCircleList[0].transform. position.x > maxX) //Right pos
-            {
-                snakeCircleList[0].transform. position = new Vector3(maxX - 0.05f, snakeCircleList[0].transform. position.y, snakeCircleList[0].transform. position.z);
-            }
-            else if (snakeCircleList[0].transform. position.x < -maxX) //Left pos
-            {
-                snakeCircleList[0].transform. position = new Vector3(-maxX + 0.05f, snakeCircleList[0].transform. position.y, snakeCircleList[0].transform. position.z);
-            }
-        }
+        getSnakeHead = snakeMovement.gameObject;
     }
 }

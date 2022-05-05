@@ -11,7 +11,14 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        instances = this;
+        if(instances != null)
+        {
+            Destroy(this.gameObject);
+        }
+        else
+        {
+            instances = this;
+        }
     }
     public void BlockTouch()
     {

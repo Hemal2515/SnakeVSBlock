@@ -5,8 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - Block
-  - SnakeBody
   - BottomWall
+  - SnakeFood
   layers:
   - Default
   - TransparentFX

@@ -12,12 +12,17 @@ public class Score : MonoBehaviour
 
     void Start()
     {
+        if(instance != null)
+        {
+            Destroy(this.gameObject);
+        }
         instance = this;
     }
 
     
-    void Update()
+    public void GetScore()
     {
+        score++;
         scoreText.text = score.ToString();
     }
 }

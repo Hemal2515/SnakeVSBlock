@@ -1,22 +1,37 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using TMPro;
-using System;
 
 public class Block : MonoBehaviour
 {
+    public NotifiertSO notifiertSO;
     public TMP_Text tMP_Text;
     public GameObject particlePrefab;
     private int i;
-    public int num;
 
     Coroutine a;
-
-    private void Update()
+    
+    private void OnEnable()
     {
-        if(BottomWall.instaces.bottomWall.transform.position.y > transform.position.y)
+        notifiertSO.OnGameStateChange += OnGameState;
+    }
+
+
+    public void OnGameState(GameState gameState)
+    {
+        switch (gameState)
+        {
+            case GameState.GameOver:
+                //Destroy(this.gameObject);
+                break;
+            default:
+                break;
+        }
+    }
+
+    public void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.tag == "BottomWall")
         {
             Destroy(this.gameObject);
         }
@@ -26,52 +41,53 @@ public class Block : MonoBehaviour
     {
         if (collision.collider.tag == "Player")
         {
-            if (a == null)
-            {
-                SnakeMovement snakeMovement= collision.collider.GetComponent<SnakeMovement>();
-                if (snakeMovement == null)
-                    return;
-                a = StartCoroutine(DecreseBlockNumber(snakeMovement.SnakeCircleCount,snakeMovement));
-            }
+           SnakeMovement snakeMovement = collision.collider.gameObject.GetComponent<SnakeMovement>();
+            snakeMovement.BodySpeed = 1f;
+            a = StartCoroutine(DecreaseNumber(snakeMovement));
         }
     }
 
 
     public  void OnCollisionExit2D(Collision2D collision)
     {
-     //   StopCoroutine(a);
+        collision.collider.gameObject.GetComponent<SnakeMovement>().BodySpeed = 5f;
+        StopCoroutine(a);
     }
-    IEnumerator DecreseBlockNumber(int snakeCount,SnakeMovement snakeMovement)
+   
+
+    IEnumerator DecreaseNumber(SnakeMovement snakeMovement)
     {
         i = int.Parse(tMP_Text.text);
-        while(i > 0)
+        GameObject storeSnakeBody;
+        while (i > 0)
         {
+            //Increse Score
+            Score.instance.GetScore();
+
             //Decrese Block Number
             tMP_Text.text = (i).ToString();
             i--;
-
-            //Remove snake circle from snakeCircleList and Instatiate Particle
             
-            GameObject go = snakeMovement.snakeCircleList[snakeMovement.SnakeCircleCount - 1];
+            //Remove snake body from snakeCircleList and Instatiate Particle
+            if(snakeMovement.SnakeBodyCount <= 1)
+            {
+                storeSnakeBody = snakeMovement.snakeBody[0];
+            }
+            else
+            {
+                storeSnakeBody = snakeMovement.snakeBody[1];
+            }
+
             AudioManager.instances.BlockTouch();
-            GameObject storeParticle = Instantiate(particlePrefab, snakeMovement.transform.position, Quaternion.identity);
-            snakeMovement.snakeCircleList.Remove(go);
+            GameObject storeParticle = Instantiate(particlePrefab,snakeMovement.transform.position, Quaternion.identity);
+            snakeMovement.snakeBody.Remove(storeSnakeBody);
             snakeMovement.ChangeToGameOver();
-            Destroy(go);
-            
+            Destroy(storeSnakeBody);
 
-            //Increse Score
-            Score.instance.score ++ ;
-            yield return new WaitForSeconds(0.2f);
+           yield return new WaitForSeconds(0.2f);
             Destroy(storeParticle);
         }
-        if(i< snakeCount)
-            Destroy(this.gameObject);
-        
-        yield return null;
-
+        Destroy(this.gameObject);
     }
-
-    
 
 }

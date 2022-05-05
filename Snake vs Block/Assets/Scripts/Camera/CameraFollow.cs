@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
-    public GameObject target;
+    private GameObject target;
    
     //Update Camwra per frame
     public void LateUpdate()
@@ -13,9 +13,13 @@ public class CameraFollow : MonoBehaviour
         {
             if (target.transform.position.y > transform.position.y)
             {
-
                 transform.position = new Vector3(transform.position.x, target.transform.position.y, transform.position.z) ;
             }
         }
+    }
+
+    public void GetTarget(GameObject go)
+    {
+        target = go;
     }
 }
